@@ -1,0 +1,43 @@
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Local environment and secrets
+.env
+.env.*
+secrets/
+config/credentials.json
+
+# Source data and generated feature/result stores
+data/*.parquet
+data/*.db
+data/*.sqlite
+*.db
+*.sqlite
+
+# Generated reports and experiment outputs
+report/*.png
+report/*.csv
+report/*.json
+report/*.parquet
+report/report*.md
+report/elite_pool.json
+
+# Local Claude/Codex transient state
+.claude/state/
+.claude/.preflight_ok
+.claude/**/__pycache__/
+.codex/
+.claude_backup_old/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.log
