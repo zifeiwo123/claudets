@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claudets Research Governance"
+  short_description: "Audit claudets research, reports, encoding, and backtest governance."
+  default_prompt: "Use the claudets research governance workflow to review this change for data contracts, backtest metrics, report truthfulness, encoding safety, and GP pause discipline."
