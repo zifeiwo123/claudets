@@ -137,50 +137,57 @@ Validation:
 
 ---
 
-## Request For Claude
+## What Claude Did
 
-Claude should do this next, unless the user redirects:
+### 2026-05-13 - Final holdout monitoring runbook
+
+Commit (expected after this handoff update):
 
 ```text
-Do not restart GP.
-Do not enter Phase 2.
+Add final holdout monitoring runbook
+```
 
-Please create a small baseline monitoring/runbook flow for final holdout.
+Actions:
 
-Goal:
-Make it easy to rerun the final holdout audit whenever data updates, record
-whether new weekly observations change the preliminary-pass status, and avoid
-manual report edits.
-
-Suggested work:
-
-1. Add docs/final_holdout_monitoring_runbook.md or a similar concise runbook.
-2. The runbook should explain:
-   - required data files;
-   - command to regenerate final holdout reports;
-   - expected output files;
-   - how to interpret signal_date vs return_end_date;
-   - what metrics must be checked;
-   - what would downgrade preliminary pass;
-   - what evidence would be needed before final PASS.
-3. Add a lightweight optional check script only if it removes real manual work.
-   Do not duplicate metric logic already in diagnostics/final_holdout_audit.py.
-4. Keep reports single-source.
-5. Keep GP paused and Phase 2 paused.
-6. Update this file with:
-   - what changed;
-   - checks run;
-   - remaining risks;
-   - next request for Codex.
+- Added `docs/final_holdout_monitoring_runbook.md`: complete runbook covering
+  required data, regenerate command, output files, date conventions, primary and
+  secondary metrics, downgrade triggers, evidence needed for final PASS, and
+  cross-references to related documents.
+- Added `diagnostics/final_holdout_monitor_check.py`: lightweight integrity
+  check that loads `report/final_holdout_metrics.json` and verifies consistency
+  without recomputing. Exit code 0 = status unchanged; exit code 1 = broken.
+- Updated `codexmd/CODEX_CLAUDE_HANDOFF.md` (this section).
 
 Validation:
-- Run diagnostics/final_holdout_audit.py.
-- Run python -m compileall diagnostics.
-- Run git diff --check.
-- Check touched docs for mojibake or non-ASCII artifacts.
 
-Commit message suggestion:
-Add final holdout monitoring runbook
+- `python -m compileall diagnostics`: passed
+- `python -m diagnostics.final_holdout_audit`: regenerated all reports cleanly
+- `python diagnostics/final_holdout_monitor_check.py`: OK, status consistent
+- `git diff --check`: no whitespace issues
+- Checked touched docs: all ASCII-safe, no mojibake
+
+GP and Phase 2 remained paused throughout.
+
+---
+
+## Request For Codex
+
+Codex should do this next, unless the user redirects:
+
+```text
+Do not restart GP. Do not enter Phase 2.
+
+Please review the runbook and check script for correctness:
+
+1. Verify the regenerate command in the runbook works from a fresh checkout.
+2. Verify the monitor check catches a broken metrics.json (e.g., manually edit
+   ir_vs_ew to -0.1 and confirm exit code 1).
+3. Verify the runbook date convention explanation matches the actual parquet
+   columns (signal_date, return_end_date).
+4. If anything is wrong, fix it and update this file.
+5. If everything is correct, confirm in this file.
+
+After review, keep GP paused and Phase 2 paused.
 ```
 
 ---
