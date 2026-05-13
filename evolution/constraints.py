@@ -1,6 +1,7 @@
 """Expression constraints for factor generation."""
 from config.settings import MAX_TREE_DEPTH, MAX_WINDOW
 from factors.expression_tree import ExprNode
+from factors.operators import DAILY_FEATURE_FIELDS, RAW_LEVEL_FIELDS
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,6 +18,7 @@ class ConstraintChecker:
             and self.check_window(node)
             and self.check_no_self_correlation(node)
             and self.check_no_raw_level_alpha(node)
+            and self.check_has_daily_feature(node)
         )
 
     def check_depth(self, node: ExprNode) -> bool:
@@ -50,17 +52,29 @@ class ConstraintChecker:
         return left_ok and right_ok
 
     def check_no_raw_level_alpha(self, node: ExprNode) -> bool:
-        raw_fields = {"open", "high", "low", "close", "volume", "amount"}
-        identity_ops = {"scale", "signed_power"}
-
-        def is_raw_or_identity(n: ExprNode) -> bool:
+        def has_raw_level(n: ExprNode) -> bool:
             if n.is_leaf:
-                return n.op in raw_fields
-            if n.op in identity_ops and n.left is not None:
-                return is_raw_or_identity(n.left)
-            return False
+                return n.op in RAW_LEVEL_FIELDS
+            left_bad = has_raw_level(n.left) if n.left else False
+            right_bad = has_raw_level(n.right) if n.right else False
+            return left_bad or right_bad
 
-        if is_raw_or_identity(node):
-            logger.debug("reject raw-level/identity alpha: %s", node)
+        if has_raw_level(node):
+            logger.debug("reject raw price/liquidity exposure: %s", node)
+            return False
+        return True
+
+    def check_has_daily_feature(self, node: ExprNode) -> bool:
+        daily_fields = set(DAILY_FEATURE_FIELDS)
+
+        def has_daily(n: ExprNode) -> bool:
+            if n.is_leaf:
+                return n.op in daily_fields
+            left_ok = has_daily(n.left) if n.left else False
+            right_ok = has_daily(n.right) if n.right else False
+            return left_ok or right_ok
+
+        if not has_daily(node):
+            logger.debug("reject alpha without daily-derived feature: %s", node)
             return False
         return True

@@ -11,7 +11,7 @@ class OperatorDef:
     param_range: Optional[tuple] = None
 
 
-FIELDS = [
+BASE_FIELDS = [
     "open",
     "high",
     "low",
@@ -20,6 +20,11 @@ FIELDS = [
     "amount",
     "returns",
     "amplitude",
+]
+
+RAW_LEVEL_FIELDS = {"open", "high", "low", "close", "volume", "amount"}
+
+DAILY_FEATURE_FIELDS = [
     "d_ret_5d",
     "d_ret_20d",
     "d_vol_20d",
@@ -29,6 +34,10 @@ FIELDS = [
     "d_volume_z20",
     "d_amount_z20",
 ]
+
+# Generation leaves. Weekly rebalancing is intentionally guided by daily-derived
+# features, not raw price/liquidity levels.
+FIELDS = DAILY_FEATURE_FIELDS
 
 UNARY_WINDOW_OPS = {
     "ts_mean": OperatorDef("ts_mean", 1, True, (5, 60, 5)),

@@ -5,7 +5,7 @@ import hashlib
 from dataclasses import dataclass
 from typing import List, Optional
 
-from factors.operators import FIELDS
+from factors.operators import BASE_FIELDS, FIELDS
 
 
 @dataclass
@@ -18,7 +18,7 @@ class ExprNode:
 
     def to_python(self) -> str:
         if self.is_leaf:
-            if self.op in FIELDS:
+            if self.op in set(BASE_FIELDS).union(FIELDS):
                 return f"_data['{self.op}']"
             return f"{self.param}"
         return OPERATOR_COMPILERS[self.op](self)

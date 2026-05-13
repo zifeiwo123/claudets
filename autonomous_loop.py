@@ -14,7 +14,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-import os, json
+import os, json, re
 from datetime import datetime
 
 from config.settings import WEEKLY_PARQUET
@@ -39,6 +39,26 @@ REPORT_DIR = 'report'
 ELITE_POOL_PATH = os.path.join(REPORT_DIR, "elite_pool.json")
 ELITE_POOL_SIZE = 10
 os.makedirs(REPORT_DIR, exist_ok=True)
+
+
+def save_result_tables(results):
+    if not results:
+        return
+    summary_path = os.path.join(REPORT_DIR, 'summary.json')
+    with open(summary_path, 'w', encoding='utf-8') as f:
+        json.dump(results, f, indent=2, default=str)
+    pd.DataFrame(results).to_csv(os.path.join(REPORT_DIR, 'iteration_summary.csv'), index=False)
+
+
+def infer_start_iteration(existing):
+    if existing:
+        return max(int(row.get('iteration', 0)) for row in existing) + 1
+    max_report_iter = 0
+    for name in os.listdir(REPORT_DIR):
+        match = re.fullmatch(r"report_v(\d+)\.md", name)
+        if match:
+            max_report_iter = max(max_report_iter, int(match.group(1)))
+    return max_report_iter + 1 if max_report_iter else 1
 
 
 def load_data():
@@ -80,6 +100,7 @@ def load_elite_pool():
     """Load persistent elite factors from previous iterations"""
     if not os.path.exists(ELITE_POOL_PATH):
         return []
+    checker = ConstraintChecker()
     try:
         with open(ELITE_POOL_PATH, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -87,6 +108,8 @@ def load_elite_pool():
         for entry in data:
             try:
                 node = ExprNode.from_dict(entry["tree"])
+                if not checker.validate(node):
+                    continue
                 elites.append({
                     "id": entry["id"], "node": node,
                     "expr": str(node), "val_ic": entry["val_ic"],
@@ -148,6 +171,8 @@ def generate_and_evaluate(train, val, universe, elite_seeds=None, n_initial=20):
         for es in elite_seeds:
             try:
                 node = es["node"]
+                if not checker.validate(node):
+                    continue
                 fid = f"elite_{FactorGenerator._next_id:04d}"
                 FactorGenerator._next_id += 1
                 pool.add(fid, node, generation=-1)  # gen=-1 marks elite
@@ -210,9 +235,11 @@ def run_evolution(train, val, universe, pool, good_df):
     val_u = val[val['ts_code'].isin(universe)]
 
     engine = EvolutionEngine(train_u, val_u, universe=universe, max_stocks=MAX_STOCKS)
+    checker = ConstraintChecker()
     for _, r in good_df.iterrows():
         node = pool.get(r['id'])
-        if node: engine.pool.add(r['id'], node, generation=0)
+        if node and checker.validate(node):
+            engine.pool.add(r['id'], node, generation=0)
 
     result = engine.run()
     return engine, result
@@ -516,12 +543,8 @@ def run_one_iteration(iteration, train, val, test, hs300_ret, cyb_ret, universe,
 
 
 def main():
-    START_ITER = 35
-    EPOCHS = 200
+    EPOCHS = int(os.getenv("CLAUDETS_EPOCHS", "50"))
     print(f'{"="*60}')
-    print(f'Autonomous Alpha Evolution - Iterations {START_ITER}-{START_ITER+EPOCHS-1} (bug-fixed)')
-    print(f'{"="*60}')
-
     train, val, test, hs300_ret, cyb_ret = load_data()
     universe = get_universe_stocks(train, n=MAX_STOCKS)
     print(f'Data ready. Fixed universe: {len(universe)} stocks (from training period)')
@@ -531,8 +554,11 @@ def main():
     summary_path = os.path.join(REPORT_DIR, 'summary.json')
     existing = []
     if os.path.exists(summary_path):
-        with open(summary_path) as f:
+        with open(summary_path, encoding='utf-8') as f:
             existing = json.load(f)
+    START_ITER = int(os.getenv("CLAUDETS_START_ITER", str(infer_start_iteration(existing))))
+    print(f'Autonomous Alpha Evolution - Iterations {START_ITER}-{START_ITER+EPOCHS-1} (daily-feature constrained)')
+    print(f'{"="*60}')
     print(f'Existing results: {len(existing)} iterations')
 
     best_result = None
@@ -544,6 +570,7 @@ def main():
         result = run_one_iteration(i, train, val, test, hs300_ret, cyb_ret, universe, elite_seeds=elite_seeds)
         if result is None: continue
         all_results.append(result)
+        save_result_tables(all_results)
         if best_result is None or result['sharpe'] > best_result['sharpe']:
             best_result = result
             print(f'  >>> NEW BEST: Sharpe={result["sharpe"]:.2f}  Ann={result["annual_return"]:.1%}')
@@ -573,14 +600,8 @@ def main():
             print(f'  Strat={best_result["strat_cum"]:+.1f}%  '
                   f'ChiNext={best_result["cyb_cum"]:+.1f}%  HS300={best_result["hs300_cum"]:+.1f}%')
 
-        # Save summary
-        summary_path = os.path.join(REPORT_DIR, 'summary.json')
-        with open(summary_path, 'w') as f:
-            json.dump(all_results, f, indent=2, default=str)
-        print(f'\nSummary: {summary_path}')
-
-        # Iteration summary CSV
-        df_all.to_csv(os.path.join(REPORT_DIR, 'iteration_summary.csv'), index=False)
+        save_result_tables(all_results)
+        print(f'\nSummary: {os.path.join(REPORT_DIR, "summary.json")}')
 
 
 if __name__ == '__main__':

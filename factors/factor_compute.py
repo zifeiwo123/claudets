@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from factors.expression_tree import ExprNode
-from factors.operators import FIELDS
+from factors.operators import BASE_FIELDS, FIELDS
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +25,7 @@ class FactorCompute:
 
         filtered = self.raw[self.raw["ts_code"].isin(self.stocks)]
         self._data = {}
-        for field in FIELDS:
+        for field in list(dict.fromkeys(BASE_FIELDS + FIELDS)):
             if field not in filtered.columns:
                 continue
             self._data[field] = (
