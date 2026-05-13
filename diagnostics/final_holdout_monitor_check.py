@@ -16,6 +16,10 @@ METRICS_PATH = Path("report/final_holdout_metrics.json")
 
 REQUIRED_KEYS = [
     "n_holdout_weeks",
+    "first_signal_date",
+    "last_signal_date",
+    "first_return_end_date",
+    "last_return_end_date",
     "cumulative_strategy_return",
     "cumulative_ew_return",
     "cumulative_excess_return",
@@ -57,13 +61,24 @@ def check():
         if key not in m:
             errors.append(f"missing key: {key}")
 
-    # Active performance checks
-    if not m.get("ir_ok"):
-        errors.append(f"ir_vs_ew <= 0 ({m.get('ir_vs_ew', 'N/A')})")
-    if not m.get("excess_ok"):
-        errors.append(f"annualized_excess_return <= 0 ({m.get('annualized_excess_return', 'N/A')})")
-    if not m.get("win_rate_ok"):
-        errors.append(f"weekly_excess_win_rate <= 0.5 ({m.get('weekly_excess_win_rate', 'N/A')})")
+    ir_val = m.get("ir_vs_ew")
+    excess_ann = m.get("annualized_excess_return")
+    excess_cum = m.get("cumulative_excess_return")
+    win_rate = m.get("weekly_excess_win_rate")
+
+    # Active performance checks use raw numeric values, not only the boolean flags.
+    if not isinstance(ir_val, (int, float)) or ir_val <= 0:
+        errors.append(f"ir_vs_ew <= 0 ({ir_val if ir_val is not None else 'N/A'})")
+    if not isinstance(excess_ann, (int, float)) or excess_ann <= 0:
+        errors.append(
+            f"annualized_excess_return <= 0 ({excess_ann if excess_ann is not None else 'N/A'})"
+        )
+    if not isinstance(excess_cum, (int, float)) or excess_cum <= 0:
+        errors.append(
+            f"cumulative_excess_return <= 0 ({excess_cum if excess_cum is not None else 'N/A'})"
+        )
+    if not isinstance(win_rate, (int, float)) or win_rate <= 0.5:
+        errors.append(f"weekly_excess_win_rate <= 0.5 ({win_rate if win_rate is not None else 'N/A'})")
 
     # Status checks
     if m.get("conclusion") != "preliminary pass":
@@ -73,10 +88,17 @@ def check():
     if m.get("phase2_status") != "paused":
         errors.append(f"phase2_status is '{m.get('phase2_status')}', expected 'paused'")
 
-    # Consistency: ir_ok must match ir_vs_ew > 0
-    ir_val = m.get("ir_vs_ew", 0)
-    if m.get("ir_ok") and ir_val <= 0:
-        errors.append(f"ir_ok=True but ir_vs_ew={ir_val}")
+    # Consistency: status flags must match numeric values.
+    if m.get("ir_ok") != (isinstance(ir_val, (int, float)) and ir_val > 0):
+        errors.append(f"ir_ok={m.get('ir_ok')} inconsistent with ir_vs_ew={ir_val}")
+    if m.get("excess_ok") != (isinstance(excess_ann, (int, float)) and excess_ann > 0):
+        errors.append(
+            f"excess_ok={m.get('excess_ok')} inconsistent with annualized_excess_return={excess_ann}"
+        )
+    if m.get("win_rate_ok") != (isinstance(win_rate, (int, float)) and win_rate > 0.5):
+        errors.append(
+            f"win_rate_ok={m.get('win_rate_ok')} inconsistent with weekly_excess_win_rate={win_rate}"
+        )
 
     # Sanity: weeks should be positive
     if m.get("n_holdout_weeks", 0) <= 0:

@@ -147,10 +147,12 @@ python diagnostics\final_holdout_monitor_check.py
 This script loads the generated `report/final_holdout_metrics.json` and verifies:
 
 - The file exists and is valid JSON.
-- `ir_vs_ew > 0`, `annualized_excess_return > 0`, `weekly_excess_win_rate > 0.5`.
+- Required metric and date keys are present.
+- `ir_vs_ew > 0`, `annualized_excess_return > 0`, `cumulative_excess_return > 0`,
+  and `weekly_excess_win_rate > 0.5`.
+- Boolean flags (`ir_ok`, `excess_ok`, `win_rate_ok`) match the raw numeric values.
 - `conclusion` is `preliminary pass`.
 - `gp_status` and `phase2_status` are `paused`.
-- No metric keys expected by the report are missing.
 
 It does NOT recompute anything. It only validates the output of the main script.
 Exit code 0 means the holdout status is consistent.

@@ -135,6 +135,42 @@ Validation:
 - Ran `python -m compileall .`.
 - Checked no final holdout report claims final PASS or cleared Phase 2.
 
+### 2026-05-13 - Monitoring runbook review
+
+Codex reviewed Claude's monitoring runbook commit:
+
+```text
+670bab0 Add final holdout monitoring runbook
+```
+
+Findings:
+
+- The runbook structure and regenerate command were correct.
+- `diagnostics/final_holdout_monitor_check.py` correctly failed when
+  `ir_vs_ew` was manually changed to a negative value.
+- The monitor check initially missed a subtler corruption: changing
+  `annualized_excess_return` to a negative value while leaving
+  `excess_ok=true` still returned OK.
+
+Actions:
+
+- Updated `diagnostics/final_holdout_monitor_check.py` to validate raw numeric
+  values directly, not just boolean flags.
+- Added consistency checks for `ir_ok`, `excess_ok`, and `win_rate_ok`.
+- Added required date keys to the monitor check.
+- Updated `docs/final_holdout_monitoring_runbook.md` to describe the stronger
+  monitor behavior.
+- Regenerated final holdout outputs after fault-injection tests.
+
+Validation:
+
+- `python -m diagnostics.final_holdout_audit`: passed.
+- `python diagnostics/final_holdout_monitor_check.py`: passed on clean metrics.
+- Fault injection `ir_vs_ew=-0.1`: monitor exited 1.
+- Fault injection `annualized_excess_return=-0.001` with stale flag: monitor
+  exited 1 after the fix.
+- GP and Phase 2 remained paused.
+
 ---
 
 ## What Claude Did
@@ -188,6 +224,58 @@ Please review the runbook and check script for correctness:
 5. If everything is correct, confirm in this file.
 
 After review, keep GP paused and Phase 2 paused.
+```
+
+Status: completed by Codex in the monitoring runbook review above.
+
+---
+
+## Request For Claude
+
+Claude should do this next, unless the user redirects:
+
+```text
+Do not restart GP.
+Do not enter Phase 2.
+
+Please clean up stale historical Phase 2 / GP language in old reports by adding
+a short disclaimer block, not by rewriting history.
+
+Goal:
+Older reports such as final_diagnosis_audit and walk_forward_baseline_report
+still contain lines like "Phase 2 can begin" or imply GP can restart after a
+holdout confirmation. The current governing state is stricter:
+final holdout = preliminary pass, GP paused, Phase 2 paused.
+
+Suggested work:
+
+1. Add a top-level disclaimer to stale historical report files that says:
+   - This is a historical report.
+   - Current status is governed by codexmd/CODEX_CLAUDE_HANDOFF.md and
+     report/final_holdout_audit.md.
+   - GP remains paused and Phase 2 remains paused.
+   - Do not use old "Phase 2 can begin" wording as current approval.
+2. Do not alter old numeric tables unless they are regenerated from their own
+   scripts.
+3. Prefer adding a short "Current Status Override" section near the top.
+4. Keep docs ASCII-safe.
+5. Update this file with what changed, checks run, remaining risks, and next
+   request for Codex.
+
+Candidate files to inspect first:
+- report/final_diagnosis_audit.md
+- analysis/final_diagnosis_audit.md
+- report/walk_forward_baseline_report.md
+- analysis/walk_forward_baseline_report.md
+- diagnostics/walk_forward_baseline.py (only if generated wording needs a
+  template disclaimer)
+
+Validation:
+- Run git diff --check.
+- Run python -m compileall diagnostics.
+- Search for "Phase 2 can begin", "cleared", and "final PASS" in report/,
+  analysis/, diagnostics/, and codexmd/.
+- The final answer must confirm GP paused and Phase 2 paused.
 ```
 
 ---
