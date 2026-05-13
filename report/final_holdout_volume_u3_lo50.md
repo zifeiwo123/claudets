@@ -1,6 +1,6 @@
 # final holdout: -volume on U3 LO50
 
-**Generated**: 2026-05-13T18:30:46.993861
+**Generated**: 2026-05-13T22:25:52.355030
 **Conclusion**: preliminary pass
 **GP**: paused
 **Phase 2**: paused
@@ -28,6 +28,8 @@ All numbers from single source: `report/final_holdout_weekly_detail.parquet` -> 
 | Holdout weeks | 13 |
 | First signal date | 2026-01-09 00:00:00 |
 | Last signal date | 2026-04-30 00:00:00 |
+| First return end date | 2026-01-16 00:00:00 |
+| Last return end date | 2026-05-08 00:00:00 |
 | Cumulative strategy return | +3.075% |
 | Cumulative universe EW return | +2.109% |
 | Cumulative excess return | +0.827% |
@@ -58,12 +60,13 @@ The latter would give +12.9% - (+8.7%) = +4.2%, which is a simple spread between
 ## Date convention
 
 The `signal_date` column is the strategy rebalance date (week-end snapshot).
-Returns are next-week forward returns aligned to that signal date.
+The `return_end_date` column is the next available weekly trading date used to realize the forward return.
 
 ```text
 signal_date = t (factor snapshot date)
-strategy_ret = portfolio return from t to t+1
-universe_ew_ret = equal-weight return from t to t+1
+return_end_date = t+1 (next weekly close date)
+strategy_ret = portfolio return from signal_date to return_end_date
+universe_ew_ret = equal-weight return from signal_date to return_end_date
 excess_ret = strategy_ret - universe_ew_ret
 ```
 
@@ -79,27 +82,27 @@ excess_ret = strategy_ret - universe_ew_ret
 
 ## Weekly Detail
 
-Signal dates and next-week returns:
+Signal dates and next-week return end dates:
 
-| signal_date | strategy_ret | universe_ew_ret | excess_ret | strategy_nav | universe_nav | active_nav | turnover | cost |
-|-------------|--------------|-----------------|------------|--------------|--------------|------------|----------|------|
-| 2026-01-09 | +0.628% | +0.336% | +0.292% | 1.006283 | 1.003362 | 1.002921 | 100.0% | 0.400% |
-| 2026-01-16 | +1.187% | +3.512% | -2.326% | 1.018224 | 1.038602 | 0.979597 | 18.0% | 0.072% |
-| 2026-01-23 | -4.033% | -3.497% | -0.536% | 0.977161 | 1.002285 | 0.974346 | 20.0% | 0.080% |
-| 2026-02-06 | +1.564% | +1.075% | +0.489% | 0.992446 | 1.013061 | 0.979111 | 26.0% | 0.104% |
-| 2026-02-13 | +1.929% | +3.512% | -1.583% | 1.011588 | 1.048638 | 0.963612 | 14.0% | 0.056% |
-| 2026-02-27 | -3.325% | -3.263% | -0.062% | 0.977956 | 1.014419 | 0.963019 | 14.0% | 0.056% |
-| 2026-03-06 | -1.216% | -1.679% | +0.464% | 0.966068 | 0.997383 | 0.967485 | 18.0% | 0.072% |
-| 2026-03-13 | -4.300% | -5.452% | +1.152% | 0.924524 | 0.943007 | 0.978626 | 26.0% | 0.104% |
-| 2026-03-20 | -0.426% | -0.596% | +0.171% | 0.920588 | 0.937383 | 0.980296 | 18.0% | 0.072% |
-| 2026-03-27 | -1.907% | -2.944% | +1.037% | 0.903036 | 0.909786 | 0.990467 | 16.0% | 0.064% |
-| 2026-04-03 | +7.224% | +5.257% | +1.966% | 0.968268 | 0.957618 | 1.009940 | 18.0% | 0.072% |
-| 2026-04-10 | +2.286% | +2.641% | -0.356% | 0.990401 | 0.982913 | 1.006349 | 22.0% | 0.088% |
-| 2026-04-30 | +4.074% | +3.884% | +0.190% | 1.030751 | 1.021086 | 1.008265 | 28.0% | 0.112% |
+| signal_date | return_end_date | strategy_ret | universe_ew_ret | excess_ret | strategy_nav | universe_nav | active_nav | turnover | cost |
+|-------------|-----------------|--------------|-----------------|------------|--------------|--------------|------------|----------|------|
+| 2026-01-09 | 2026-01-16 | +0.628% | +0.336% | +0.292% | 1.006283 | 1.003362 | 1.002921 | 100.0% | 0.400% |
+| 2026-01-16 | 2026-01-23 | +1.187% | +3.512% | -2.326% | 1.018224 | 1.038602 | 0.979597 | 18.0% | 0.072% |
+| 2026-01-23 | 2026-01-30 | -4.033% | -3.497% | -0.536% | 0.977161 | 1.002285 | 0.974346 | 20.0% | 0.080% |
+| 2026-02-06 | 2026-02-13 | +1.564% | +1.075% | +0.489% | 0.992446 | 1.013061 | 0.979111 | 26.0% | 0.104% |
+| 2026-02-13 | 2026-02-27 | +1.929% | +3.512% | -1.583% | 1.011588 | 1.048638 | 0.963612 | 14.0% | 0.056% |
+| 2026-02-27 | 2026-03-06 | -3.325% | -3.263% | -0.062% | 0.977956 | 1.014419 | 0.963019 | 14.0% | 0.056% |
+| 2026-03-06 | 2026-03-13 | -1.216% | -1.679% | +0.464% | 0.966068 | 0.997383 | 0.967485 | 18.0% | 0.072% |
+| 2026-03-13 | 2026-03-20 | -4.300% | -5.452% | +1.152% | 0.924524 | 0.943007 | 0.978626 | 26.0% | 0.104% |
+| 2026-03-20 | 2026-03-27 | -0.426% | -0.596% | +0.171% | 0.920588 | 0.937383 | 0.980296 | 18.0% | 0.072% |
+| 2026-03-27 | 2026-04-03 | -1.907% | -2.944% | +1.037% | 0.903036 | 0.909786 | 0.990467 | 16.0% | 0.064% |
+| 2026-04-03 | 2026-04-10 | +7.224% | +5.257% | +1.966% | 0.968268 | 0.957618 | 1.009940 | 18.0% | 0.072% |
+| 2026-04-10 | 2026-04-17 | +2.286% | +2.641% | -0.356% | 0.990401 | 0.982913 | 1.006349 | 22.0% | 0.088% |
+| 2026-04-30 | 2026-05-08 | +4.074% | +3.884% | +0.190% | 1.030751 | 1.021086 | 1.008265 | 28.0% | 0.112% |
 
 ## Conclusion
 
-The frozen -volume U3 LO50 baseline continues to show positive active performance through 2026-05-08 on the clean holdout. All active-performance criteria are met.
+The frozen -volume U3 LO50 baseline continues to show positive active performance through 2026-05-08 00:00:00 on the clean holdout. All active-performance criteria are met.
 
 However:
 - The holdout has only 13 weekly observations. Annualized metrics are indicative, not conclusive.

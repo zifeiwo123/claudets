@@ -1,6 +1,6 @@
 # final holdout audit
 
-**Generated**: 2026-05-13T18:30:46.993861
+**Generated**: 2026-05-13T22:25:52.355030
 **Conclusion**: preliminary pass
 **GP**: paused
 **Phase 2**: paused
@@ -15,10 +15,10 @@ The script reads `data/weekly_daily_features.parquet`, builds the U3 universe
 (train 2023-01-01 to 2025-12-31), computes the -volume factor, constructs the
 long-only Top50 portfolio on the 2026-01-01+ holdout, and writes:
 
-- `report/final_holdout_weekly_detail.parquet` — 13 weekly rows
-- `report/final_holdout_metrics.json` — all computed metrics
-- `report/final_holdout_volume_u3_lo50.md` — formatted report
-- `report/final_holdout_audit.md` — this file
+- `report/final_holdout_weekly_detail.parquet` - 13 weekly rows
+- `report/final_holdout_metrics.json` - all computed metrics
+- `report/final_holdout_volume_u3_lo50.md` - formatted report
+- `report/final_holdout_audit.md` - this file
 
 Every metric in the report is derived from the same weekly detail table.
 
@@ -27,6 +27,10 @@ Every metric in the report is derived from the same weekly detail table.
 | Metric | Value |
 |--------|-------|
 | Holdout weeks | 13 |
+| First signal date | 2026-01-09 00:00:00 |
+| Last signal date | 2026-04-30 00:00:00 |
+| First return end date | 2026-01-16 00:00:00 |
+| Last return end date | 2026-05-08 00:00:00 |
 | Cumulative strategy return | +3.075% |
 | Cumulative universe EW return | +2.109% |
 | Cumulative excess return | +0.827% |
@@ -55,7 +59,8 @@ The correct annualized excess is +3.350%.
 ## Date Convention
 
 `signal_date` = factor snapshot date (week-end rebalance).
-Returns cover the week from signal_date to the next week-end.
+`return_end_date` = next available weekly close date.
+Returns cover the interval from signal_date to return_end_date.
 
 ## Residual Risks
 

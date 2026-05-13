@@ -22,10 +22,16 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from diagnostics.followup_diagnosis import (
     build_long_only_portfolio,
@@ -72,6 +78,10 @@ def compute_all():
     pivots = build_pivots(weekly, universe, ["close", "high", "low", "volume"])
     fwd_full = compute_fwd_ret(pivots["close"])
     factor = compute_simple_factor(pivots, FACTOR_NAME)
+    return_end_by_signal = pd.Series(
+        pivots["close"].index[1:],
+        index=pivots["close"].index[:-1],
+    )
 
     h_mask = factor.index.astype(str) >= HOLDOUT_START
     f_holdout = factor[h_mask]
@@ -86,15 +96,18 @@ def compute_all():
     strategy_ret = pf["net_ret"][common_idx]
     ew_ret = ew_all[common_idx]
     excess_ret = strategy_ret - ew_ret
+    return_end_dates = return_end_by_signal.reindex(common_idx)
 
     # Validate alignment: all three must share the same index
     assert strategy_ret.index.equals(ew_ret.index)
     assert strategy_ret.index.equals(excess_ret.index)
+    assert not return_end_dates.isna().any()
 
     # Weekly detail table
     detail = pd.DataFrame(
         {
             "signal_date": common_idx,
+            "return_end_date": return_end_dates.values,
             "strategy_ret": strategy_ret.values,
             "universe_ew_ret": ew_ret.values,
             "excess_ret": excess_ret.values,
@@ -130,6 +143,8 @@ def compute_all():
         "n_holdout_weeks": n_weeks,
         "first_signal_date": str(common_idx[0]),
         "last_signal_date": str(common_idx[-1]),
+        "first_return_end_date": str(return_end_dates.iloc[0]),
+        "last_return_end_date": str(return_end_dates.iloc[-1]),
         "cumulative_strategy_return": round(float(strat_cum - 1), 6),
         "cumulative_ew_return": round(float(ew_cum - 1), 6),
         "cumulative_excess_return": round(float(excess_cum - 1), 6),
@@ -173,7 +188,7 @@ def generate_reports(detail, metrics):
     weekly_table_rows = []
     for idx, row in detail.iterrows():
         weekly_table_rows.append(
-            f"| {idx.date()} | {row['strategy_ret']:+.3%} | {row['universe_ew_ret']:+.3%} | "
+            f"| {idx.date()} | {row['return_end_date'].date()} | {row['strategy_ret']:+.3%} | {row['universe_ew_ret']:+.3%} | "
             f"{row['excess_ret']:+.3%} | {row['strategy_nav']:.6f} | {row['universe_nav']:.6f} | "
             f"{row['active_nav']:.6f} | {row['turnover']:.1%} | {row['cost']:.3%} |"
         )
@@ -213,6 +228,8 @@ All numbers from single source: `report/final_holdout_weekly_detail.parquet` -> 
 | Holdout weeks | {m['n_holdout_weeks']} |
 | First signal date | {m['first_signal_date']} |
 | Last signal date | {m['last_signal_date']} |
+| First return end date | {m['first_return_end_date']} |
+| Last return end date | {m['last_return_end_date']} |
 | Cumulative strategy return | {fmt_pct(m['cumulative_strategy_return'])} |
 | Cumulative universe EW return | {fmt_pct(m['cumulative_ew_return'])} |
 | Cumulative excess return | {fmt_pct(m['cumulative_excess_return'])} |
@@ -243,12 +260,13 @@ The latter would give {m['annualized_strategy_return']*100:+.1f}% - ({m['annuali
 ## Date convention
 
 The `signal_date` column is the strategy rebalance date (week-end snapshot).
-Returns are next-week forward returns aligned to that signal date.
+The `return_end_date` column is the next available weekly trading date used to realize the forward return.
 
 ```text
 signal_date = t (factor snapshot date)
-strategy_ret = portfolio return from t to t+1
-universe_ew_ret = equal-weight return from t to t+1
+return_end_date = t+1 (next weekly close date)
+strategy_ret = portfolio return from signal_date to return_end_date
+universe_ew_ret = equal-weight return from signal_date to return_end_date
 excess_ret = strategy_ret - universe_ew_ret
 ```
 
@@ -264,15 +282,15 @@ excess_ret = strategy_ret - universe_ew_ret
 
 ## Weekly Detail
 
-Signal dates and next-week returns:
+Signal dates and next-week return end dates:
 
-| signal_date | strategy_ret | universe_ew_ret | excess_ret | strategy_nav | universe_nav | active_nav | turnover | cost |
-|-------------|--------------|-----------------|------------|--------------|--------------|------------|----------|------|
+| signal_date | return_end_date | strategy_ret | universe_ew_ret | excess_ret | strategy_nav | universe_nav | active_nav | turnover | cost |
+|-------------|-----------------|--------------|-----------------|------------|--------------|--------------|------------|----------|------|
 {weekly_table}
 
 ## Conclusion
 
-The frozen -volume U3 LO50 baseline continues to show positive active performance through 2026-05-08 on the clean holdout. All active-performance criteria are met.
+The frozen -volume U3 LO50 baseline continues to show positive active performance through {m['last_return_end_date']} on the clean holdout. All active-performance criteria are met.
 
 However:
 - The holdout has only {m['n_holdout_weeks']} weekly observations. Annualized metrics are indicative, not conclusive.
@@ -322,10 +340,10 @@ The script reads `data/weekly_daily_features.parquet`, builds the U3 universe
 (train 2023-01-01 to 2025-12-31), computes the -volume factor, constructs the
 long-only Top50 portfolio on the 2026-01-01+ holdout, and writes:
 
-- `report/final_holdout_weekly_detail.parquet` — 13 weekly rows
-- `report/final_holdout_metrics.json` — all computed metrics
-- `report/final_holdout_volume_u3_lo50.md` — formatted report
-- `report/final_holdout_audit.md` — this file
+- `report/final_holdout_weekly_detail.parquet` - 13 weekly rows
+- `report/final_holdout_metrics.json` - all computed metrics
+- `report/final_holdout_volume_u3_lo50.md` - formatted report
+- `report/final_holdout_audit.md` - this file
 
 Every metric in the report is derived from the same weekly detail table.
 
@@ -334,6 +352,10 @@ Every metric in the report is derived from the same weekly detail table.
 | Metric | Value |
 |--------|-------|
 | Holdout weeks | {metrics['n_holdout_weeks']} |
+| First signal date | {metrics['first_signal_date']} |
+| Last signal date | {metrics['last_signal_date']} |
+| First return end date | {metrics['first_return_end_date']} |
+| Last return end date | {metrics['last_return_end_date']} |
 | Cumulative strategy return | {metrics['cumulative_strategy_return']*100:+.3f}% |
 | Cumulative universe EW return | {metrics['cumulative_ew_return']*100:+.3f}% |
 | Cumulative excess return | {metrics['cumulative_excess_return']*100:+.3f}% |
@@ -362,7 +384,8 @@ The correct annualized excess is {metrics['annualized_excess_return']*100:+.3f}%
 ## Date Convention
 
 `signal_date` = factor snapshot date (week-end rebalance).
-Returns cover the week from signal_date to the next week-end.
+`return_end_date` = next available weekly close date.
+Returns cover the interval from signal_date to return_end_date.
 
 ## Residual Risks
 
