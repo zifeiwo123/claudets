@@ -230,52 +230,61 @@ Status: completed by Codex in the monitoring runbook review above.
 
 ---
 
-## Request For Claude
+## What Claude Did
 
-Claude should do this next, unless the user redirects:
+### 2026-05-13 - Stale Phase 2 / GP language cleanup
+
+Commit (expected after this handoff update):
 
 ```text
-Do not restart GP.
-Do not enter Phase 2.
+Add historical disclaimers to stale reports
+```
 
-Please clean up stale historical Phase 2 / GP language in old reports by adding
-a short disclaimer block, not by rewriting history.
+Actions:
 
-Goal:
-Older reports such as final_diagnosis_audit and walk_forward_baseline_report
-still contain lines like "Phase 2 can begin" or imply GP can restart after a
-holdout confirmation. The current governing state is stricter:
-final holdout = preliminary pass, GP paused, Phase 2 paused.
-
-Suggested work:
-
-1. Add a top-level disclaimer to stale historical report files that says:
-   - This is a historical report.
-   - Current status is governed by codexmd/CODEX_CLAUDE_HANDOFF.md and
-     report/final_holdout_audit.md.
-   - GP remains paused and Phase 2 remains paused.
-   - Do not use old "Phase 2 can begin" wording as current approval.
-2. Do not alter old numeric tables unless they are regenerated from their own
-   scripts.
-3. Prefer adding a short "Current Status Override" section near the top.
-4. Keep docs ASCII-safe.
-5. Update this file with what changed, checks run, remaining risks, and next
-   request for Codex.
-
-Candidate files to inspect first:
-- report/final_diagnosis_audit.md
-- analysis/final_diagnosis_audit.md
-- report/walk_forward_baseline_report.md
-- analysis/walk_forward_baseline_report.md
-- diagnostics/walk_forward_baseline.py (only if generated wording needs a
-  template disclaimer)
+- Added Current Status Override disclaimer blocks to 6 historical report files:
+  - report/final_diagnosis_audit.md
+  - analysis/final_diagnosis_audit.md
+  - report/walk_forward_baseline_report.md
+  - analysis/walk_forward_baseline_report.md
+  - report/final_diagnosis_report.md
+  - analysis/final_diagnosis_report.md
+- Each disclaimer states: this is a historical report; current governing state
+  is in codexmd/CODEX_CLAUDE_HANDOFF.md and report/final_holdout_audit.md;
+  final holdout = preliminary pass; GP paused; Phase 2 paused; old Phase 2
+  wording is not current approval.
+- Did not alter numeric tables or historical data.
+- Updated this file.
 
 Validation:
-- Run git diff --check.
-- Run python -m compileall diagnostics.
-- Search for "Phase 2 can begin", "cleared", and "final PASS" in report/,
-  analysis/, diagnostics/, and codexmd/.
-- The final answer must confirm GP paused and Phase 2 paused.
+
+- `git diff --check`: no whitespace issues
+- `python -m compileall diagnostics`: passed
+- Searched for stale phrases in report/, analysis/, codexmd/:
+  - "Phase 2 can begin", "GP can restart": only found inside new disclaimers
+  - "cleared", "final PASS": only found with negation context
+- Confirmed GP paused and Phase 2 paused
+
+---
+
+## Request For Codex
+
+Codex should do this next, unless the user redirects:
+
+```text
+Do not restart GP. Do not enter Phase 2.
+
+Please review the disclaimer cleanup:
+
+1. Verify each of the 6 files has the Current Status Override block.
+2. Verify no original numeric data was modified.
+3. Verify the search for stale Phase 2 / GP language is clean.
+4. If anything is wrong, fix it and update this file.
+5. Update the Open Risks section to note that the stale language risk is now
+   mitigated (disclaimers are in place), but the underlying reports still
+   predate the final holdout decision.
+
+After review, keep GP paused and Phase 2 paused.
 ```
 
 ---
@@ -287,5 +296,5 @@ Validation:
 - A clean short holdout is not enough to promote to final PASS.
 - Report-generation is now scripted, but future agents must avoid editing the
   generated report numbers manually.
-- Some older project docs still contain stale Phase 2 / GP language and should
-  not be treated as the current decision state.
+- Historical reports now carry disclaimers, but their original text still
+  predates the final holdout decision and should not be read as current state.

@@ -1,7 +1,16 @@
 # walk-forward baseline validation report
 
-**Date**: 2026-05-13 17:17
-**Status**: GP paused. Simple baseline walk-forward only.
+**Date**: 2026-05-13
+**Status**: Historical report.
+
+> **Current Status Override (2026-05-13)**
+>
+> This is a historical walk-forward report. The current governing state is in
+> `codexmd/CODEX_CLAUDE_HANDOFF.md` and `report/final_holdout_audit.md`:
+> - Final holdout: **preliminary pass**.
+> - **GP: paused. Phase 2: paused.**
+> - The "Phase 2 can begin" language in the original text below is stale.
+>   Phase 2 has NOT been approved. Do not use old wording as current approval.
 
 ---
 

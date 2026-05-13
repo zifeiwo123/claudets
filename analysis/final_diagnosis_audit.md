@@ -1,8 +1,17 @@
-# final diagnosis audit: 口径核查与 Phase 1 前置审查
+# final diagnosis audit: reconciliation before Phase 1
 
 **Date**: 2026-05-13
-**Status**: Audit complete. Phase 1 must NOT start until these issues are addressed.
+**Status**: Historical report.
 **References**: analysis/diagnosis_report.md | analysis/diagnosis_followup.md | analysis/final_diagnosis_report.md
+
+> **Current Status Override (2026-05-13)**
+>
+> This is a historical diagnostic report. The current governing state is in
+> `codexmd/CODEX_CLAUDE_HANDOFF.md` and `report/final_holdout_audit.md`:
+> - Final holdout: **preliminary pass**.
+> - **GP: paused. Phase 2: paused.**
+> - The "Phase 2 can begin" language in the original text below is stale.
+>   Phase 2 has NOT been approved. Do not use old wording as current approval.
 
 ---
 
