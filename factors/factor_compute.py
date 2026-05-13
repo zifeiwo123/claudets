@@ -96,14 +96,7 @@ class FactorCompute:
 
     @staticmethod
     def _ts_corr(a: pd.DataFrame, b: pd.DataFrame, window: int) -> pd.DataFrame:
-        result = pd.DataFrame(np.nan, index=a.index, columns=a.columns)
-        a_arr = a.values
-        b_arr = b.values
-        for i in range(window - 1, len(a_arr)):
-            wa = a_arr[i - window + 1:i + 1]
-            wb = b_arr[i - window + 1:i + 1]
-            for j in range(a_arr.shape[1]):
-                if np.std(wa[:, j]) > 0 and np.std(wb[:, j]) > 0:
-                    corr = np.corrcoef(wa[:, j], wb[:, j])[0, 1]
-                    result.iloc[i, j] = corr if not np.isnan(corr) else 0
-        return result
+        aligned_a, aligned_b = a.align(b, join="inner", axis=0)
+        aligned_a, aligned_b = aligned_a.align(aligned_b, join="inner", axis=1)
+        min_periods = max(3, window // 3)
+        return aligned_a.rolling(window, min_periods=min_periods).corr(aligned_b)

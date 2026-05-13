@@ -94,8 +94,10 @@ class EvolutionEngine:
         all_ids = self.pool.list_ids()
         train_results, val_results = self.evaluate_generation(all_ids)
         diagnosis = self.termination.get_overfitting_diagnosis(train_results, val_results)
+        parents = self.selector.select_top(top_k=5)
+        parent_scores = self.selector.score_many(parents)
 
-        should_stop, reason = self.termination.should_terminate(train_results, val_results, gen)
+        should_stop, reason = self.termination.should_terminate(train_results, val_results, gen, parent_scores=parent_scores)
         if should_stop:
             return {
                 "generation": gen,
@@ -105,7 +107,6 @@ class EvolutionEngine:
                 "diagnosis": diagnosis,
             }
 
-        parents = self.selector.select_top(top_k=5)
         if len(parents) < 2:
             return {"generation": gen, "terminated": True, "reason": "insufficient_parents", "n_factors": self.pool.size()}
 

@@ -463,7 +463,7 @@ def generate_report(iteration, metrics, rets_final, hs300_ret, cyb_ret,
                    '| Industry/size neutralization | Not yet |',
                    '| Long-only portfolio | Not yet |',
                    '| Final holdout validation | Not yet |',
-                   '| Forward-adjusted prices (qfq) | Not yet |',
+                   '| Forward-adjusted prices (qfq) | Pipeline supported; data must be regenerated/verified |',
                    ''])
 
     report_md = os.path.join(REPORT_DIR, f'report_v{iteration}.md')

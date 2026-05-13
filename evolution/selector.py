@@ -18,6 +18,9 @@ class ParentSelector:
         logger.info("parent top %s = %s", top_k, [(fid, scores[fid]) for fid in top])
         return top
 
+    def score_many(self, factor_ids: List[str]) -> dict:
+        return {fid: self.compute_score(fid) for fid in factor_ids}
+
     def compute_score(self, factor_id: str) -> float:
         ic = self.pool.get_ic_result(factor_id)
         node = self.pool.get(factor_id)
