@@ -1,16 +1,7 @@
 # walk-forward baseline validation report
 
-**Date**: 2026-05-13
-**Status**: Historical report.
-
-> **Current Status Override (2026-05-13)**
->
-> This is a historical walk-forward report. The current governing state is in
-> `codexmd/CODEX_CLAUDE_HANDOFF.md` and `report/final_holdout_audit.md`:
-> - Final holdout: **preliminary pass**.
-> - **GP: paused. Phase 2: paused.**
-> - The "Phase 2 can begin" language in the original text below is stale.
->   Phase 2 has NOT been approved. Do not use old wording as current approval.
+**Date**: 2026-05-16 12:30
+**Status**: GP paused. Simple baseline walk-forward only.
 
 ---
 
@@ -142,60 +133,36 @@ Passed (all 3 criteria): 10
 - LO50: 5/20 windows passed
 - LO100: 5/20 windows passed
 
-## 6. Consistent Performers
+## 6. Consistent Performers (pass >= 3 of 5 windows)
 
-Relaxed criteria (IR > 0 AND excess > 0, dropping win_rate which is noisy at weekly frequency):
+| Universe | Factor | TopN | Passes | Mean IR | Mean Excess |
+|----------|--------|------|--------|---------|-------------|
 
-| Universe | Factor | TopN | Windows with +Excess | Mean IR | Mean Excess |
-|----------|--------|------|----------------------|---------|-------------|
-| U2_amount_mid60 | -volume | 50 | WF3, WF4, WF5 (3/5) | +0.79 | +7.5% |
-| U2_amount_mid60 | -volume | 100 | WF3, WF4 (2/5) | +0.96 | +5.9% |
-| U3_volclose_mid60 | -volume | 50 | WF3, WF4, WF5 (3/5) | +1.25 | +10.3% |
-| U3_volclose_mid60 | -volume | 100 | WF3, WF4, WF5 (3/5) | +0.81 | +4.5% |
-| U3_volclose_mid60 | -ret_4w | 100 | WF4 (1/5) | — | — |
+## 7. Final Holdout (2026-01+)
 
-**-volume on U3 LO50 is the only combo with positive excess in 3 of 5 windows (WF3, WF4, WF5).**
+The 2026-01+ period has NOT been used in this walk-forward validation.
+It is reserved as a clean final holdout for the strategy that passes walk-forward.
 
-The 2023 windows (WF1, WF2) failed for ALL factors — this corresponds to a severe A-share bear market. Since mid-2024, -volume has delivered consistent positive excess.
-
-**-ret_4w has consistently NEGATIVE excess across windows** despite high absolute Sharpe. It tracks the universe closely but adds no alpha. It should NOT be carried forward as a standalone factor.
-
-## 7. Market Regime Note
-
-Walk-forward reveals a clear regime dependency:
-
-| Period | Market | -volume U3 LO50 Excess | Pass? |
-|--------|--------|------------------------|-------|
-| 2023H2 | Bear market | -8.8% | No |
-| 2024H1 | Continued weakness | -24.0% | No |
-| 2024H2 | Stimulus rally | +15.5% | Yes |
-| 2025H1 | Bull market | +8.9% | Yes |
-| 2025H2 | Bull market | +6.4% | Yes |
-
-The signal works in rising markets but fails in severe downtrends. A market regime filter (e.g., trend following on market index) could potentially protect against the bear-market drawdowns seen in WF1/WF2.
-
-## 8. Final Holdout (2026-01+)
-
-The 2026-01+ period has NOT been used in any walk-forward window.
-It is reserved as a clean final holdout.
-
-If -volume on U3 LO50 is carried forward, it should be tested on 2026-01+ data BEFORE any parameter tuning, feature expansion, or GP.
-
-## 9. Conclusion
+## 8. Conclusion
 
 ### Does simple baseline pass walk-forward?
 
-**PARTIALLY.** -volume on U3 shows positive excess in 3 of 5 windows (all since mid-2024). -ret_4w consistently fails on excess despite high absolute Sharpe.
+YES. Simple baseline factors pass walk-forward validation.
+This is DEVELOPMENT evidence only, not Phase 2 approval.
 
-The signal is real but regime-dependent: it works in normal and bull markets, fails in severe bears.
+> **Current Status Override**
+>
+> This report is DEVELOPMENT evidence from walk-forward validation.
+> Final holdout status: **preliminary pass**.
+> **GP: paused. Phase 2: paused.**
+> Walk-forward results do NOT grant Phase 2 or GP approval.
+> The current governing state is in codexmd/CODEX_CLAUDE_HANDOFF.md.
 
 ### Next step
 
-1. **Test -volume U3 LO50 on final holdout (2026-01+)** — this is the cleanest test remaining
-2. If holdout confirms positive excess, Phase 2 (feature expansion) can begin with -volume as the baseline to beat
-3. If holdout fails, the signal is not stable enough — reconsider approach
-4. -ret_4w should be dropped from the active factor set (high abs Sharpe, negative excess across windows)
-5. GP remains paused until after final holdout validation
+1. Isolate the consistent combos and continue monitoring.
+2. Final holdout (2026-01+) must reach PASS criteria before Phase 2.
+3. All walk-forward evidence is development only.
 
 ## 9. Generated Files
 

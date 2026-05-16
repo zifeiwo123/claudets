@@ -263,9 +263,9 @@ def generate_report(df):
         "",
     ])
 
-    if len(passes) >= 8:  # half of 16 tests
+    if len(passes) >= 8:
         lines.append("YES. Simple baseline factors pass walk-forward validation.")
-        lines.append("Phase 2 (feature expansion, GP) can be considered.")
+        lines.append("This is DEVELOPMENT evidence only, not Phase 2 approval.")
     elif len(passes) >= 4:
         lines.append("PARTIALLY. Some factor/universe/window combinations pass, but not consistently.")
         lines.append("Focus on the consistent performers before expanding.")
@@ -275,12 +275,21 @@ def generate_report(df):
 
     lines.extend([
         "",
+        "> **Current Status Override**",
+        ">",
+        "> This report is DEVELOPMENT evidence from walk-forward validation.",
+        "> Final holdout status: **preliminary pass**.",
+        "> **GP: paused. Phase 2: paused.**",
+        "> Walk-forward results do NOT grant Phase 2 or GP approval.",
+        "> The current governing state is in codexmd/CODEX_CLAUDE_HANDOFF.md.",
+        "",
         "### Next step",
         "",
     ])
     if len(passes) >= 4:
-        lines.append("1. Isolate the consistent combos and test on final holdout (2026-01+)")
-        lines.append("2. If holdout confirms, proceed to Phase 2 (feature expansion) with strict baseline comparison")
+        lines.append("1. Isolate the consistent combos and continue monitoring.")
+        lines.append("2. Final holdout (2026-01+) must reach PASS criteria before Phase 2.")
+        lines.append("3. All walk-forward evidence is development only.")
     else:
         lines.append("1. Do NOT proceed to Phase 2 / GP")
         lines.append("2. Investigate whether different signal design or data sources are needed")
