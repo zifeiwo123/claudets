@@ -7,6 +7,7 @@ GP remains paused. 2026-01+ preserved as final holdout.
 Outputs:
     report/walk_forward_baseline.parquet
     report/walk_forward_baseline_report.md
+    analysis/walk_forward_baseline_report.md
 """
 from __future__ import annotations
 
@@ -20,7 +21,9 @@ from diagnostics.followup_diagnosis import (
 )
 
 REPORT_DIR = "report"
+ANALYSIS_DIR = "analysis"
 os.makedirs(REPORT_DIR, exist_ok=True)
+os.makedirs(ANALYSIS_DIR, exist_ok=True)
 
 WALK_FORWARD_WINDOWS = [
     ("WF1_2023H1_to_2023H2", "2023-01-01", "2023-06-30", "2023-07-01", "2023-12-31"),

@@ -1,6 +1,6 @@
 # walk-forward baseline validation report
 
-**Date**: 2026-05-16 12:59
+**Date**: 2026-05-16 13:12
 **Status**: GP paused. Simple baseline walk-forward only.
 
 ---
@@ -170,5 +170,6 @@ Do NOT proceed to Phase 2 or restart GP based on walk-forward results.
 | File | Description |
 |------|-------------|
 | report/walk_forward_baseline.parquet | Full walk-forward results |
-| report/walk_forward_baseline_report.md | This report |
+| report/walk_forward_baseline_report.md | Generated report (report/) |
+| analysis/walk_forward_baseline_report.md | Generated report (analysis/) |
 | diagnostics/walk_forward_baseline.py | Reproducible script |
