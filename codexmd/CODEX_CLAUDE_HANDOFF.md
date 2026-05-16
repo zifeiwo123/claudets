@@ -33,16 +33,17 @@ the file. The repo has had encoding drift before, so plain ASCII is preferred.
 
 ## Current State
 
-Latest pushed commit at the time of this note:
+Latest reviewed commit at the time of this note:
 
 ```text
-8b08222 Clarify final holdout return dates
+74f9b6c Add Codex gate infrastructure: final PASS, activity exposure, walk-forward candidate
 ```
 
 Final holdout status:
 
 ```text
 Conclusion: preliminary pass
+Final PASS eligible: false
 GP: paused
 Phase 2: paused
 ```
@@ -67,8 +68,14 @@ report/final_holdout_weekly_detail.parquet
 report/final_holdout_metrics.json
 report/final_holdout_volume_u3_lo50.md
 report/final_holdout_audit.md
+report/activity_exposure_audit_summary.json
+report/activity_exposure_audit.md
+report/candidate_factor_matrix_walkforward_summary.json
+report/candidate_factor_matrix_walkforward.md
 analysis/final_holdout_volume_u3_lo50.md
 analysis/final_holdout_audit.md
+analysis/activity_exposure_audit.md
+analysis/candidate_factor_matrix_walkforward.md
 ```
 
 Note: parquet/json files under `report/` may be ignored by git. They should be
@@ -465,6 +472,132 @@ Please review the new gates:
    universes and does not touch final_holdout for selection.
 4. If all checks pass, keep the next research direction focused on new
    non-activity candidate families or richer exposure data, not GP restart.
+
+Required final state:
+
+```text
+Final holdout: preliminary pass
+Raw activity promotion: blocked
+light_model_scout: blocked
+GP: paused
+Phase 2: paused
+```
+
+---
+
+## What Codex Did
+
+### 2026-05-16 - Post-handled gate review and next orders
+
+The user reported the previous work was handled. Codex reviewed the current
+repo state.
+
+Reviewed commit:
+
+```text
+74f9b6c Add Codex gate infrastructure: final PASS, activity exposure, walk-forward candidate
+```
+
+Validation:
+
+```powershell
+git status --short --branch
+python diagnostics\final_holdout_monitor_check.py
+python -m compileall diagnostics factors evolution portfolio evaluation data pipeline config utils
+Compare-Object report/analysis report copies for:
+  activity_exposure_audit.md
+  candidate_factor_matrix_walkforward.md
+  candidate_factor_matrix.md
+  model_research_readiness.md
+  final_holdout_audit.md
+rg stale approval phrases in report analysis diagnostics codexmd
+```
+
+Review result:
+
+```text
+Working tree: clean before this handoff update
+Final holdout monitor: OK
+compileall: OK
+report/analysis gate reports: synchronized
+final_pass_eligible: false
+raw_activity_gate: blocked_pending_neutralization_or_richer_exposure_audit
+model_scout_gate: blocked_no_candidate_survived_walk_forward
+surviving_new_candidates: 0
+GP: paused
+Phase 2: paused
+```
+
+Stale wording scan:
+
+- Remaining matches are blocked/negated instructions, codexmd examples, or
+  historical report text covered by Current Status Override.
+- No current generated report grants Phase 2, GP restart, final PASS, or
+  light_model_scout approval.
+
+New next direction:
+
+```text
+Do not run light_model_scout.
+Do not restart GP.
+Do not enter Phase 2.
+Do not promote raw activity factors.
+
+Next work should create a richer non-activity candidate runway:
+1. Add a point-in-time exposure/universe audit for available neutralization
+   data, starting with what exists locally.
+2. If market cap / industry are absent, create a data-availability audit rather
+   than faking neutralization.
+3. Design candidate families that are not raw activity:
+   - normalized reversal / momentum after excluding baseline duplicates
+   - volatility compression / downside-risk variants
+   - range / intraday-strength variants
+   - cross-sectional residualized versions only if exposure data exists
+4. Re-run the walk-forward universe gate before any model scout.
+```
+
+## Request For Claude
+
+Do not restart GP. Do not enter Phase 2. Do not run light_model_scout.
+
+Please perform the next research-readiness step:
+
+```text
+Create a data-availability and exposure-neutralization readiness audit.
+```
+
+Requirements:
+
+1. Search local data sources only; do not download new data yet.
+2. Report whether market cap, industry, listing status, ST flags, suspension,
+   turnover, float shares, or similar exposure controls exist locally.
+3. If absent, state absent clearly and do not infer them from amount/volume.
+4. Output machine-readable and markdown reports:
+
+```text
+report/exposure_neutralization_readiness.json
+report/exposure_neutralization_readiness.md
+analysis/exposure_neutralization_readiness.md
+```
+
+5. The report must end with one of:
+
+```text
+neutralization_ready = true
+neutralization_ready = false
+```
+
+6. Keep final_holdout untouched.
+7. Keep raw activity factors blocked unless true exposure controls exist and a
+   later neutralized test is implemented.
+
+Validation:
+
+```powershell
+python diagnostics\exposure_neutralization_readiness.py
+python -m compileall diagnostics
+python diagnostics\final_holdout_monitor_check.py
+```
 
 Required final state:
 
