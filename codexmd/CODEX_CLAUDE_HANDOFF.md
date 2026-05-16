@@ -36,7 +36,7 @@ the file. The repo has had encoding drift before, so plain ASCII is preferred.
 Latest reviewed commit at the time of this note:
 
 ```text
-74f9b6c Add Codex gate infrastructure: final PASS, activity exposure, walk-forward candidate
+a951bd7 Add exposure neutralization readiness audit
 ```
 
 Final holdout status:
@@ -72,10 +72,13 @@ report/activity_exposure_audit_summary.json
 report/activity_exposure_audit.md
 report/candidate_factor_matrix_walkforward_summary.json
 report/candidate_factor_matrix_walkforward.md
+report/exposure_neutralization_readiness.json
+report/exposure_neutralization_readiness.md
 analysis/final_holdout_volume_u3_lo50.md
 analysis/final_holdout_audit.md
 analysis/activity_exposure_audit.md
 analysis/candidate_factor_matrix_walkforward.md
+analysis/exposure_neutralization_readiness.md
 ```
 
 Note: parquet/json files under `report/` may be ignored by git. They should be
@@ -477,6 +480,187 @@ Required final state:
 
 ```text
 Final holdout: preliminary pass
+Raw activity promotion: blocked
+light_model_scout: blocked
+GP: paused
+Phase 2: paused
+```
+
+---
+
+## What Codex Did
+
+### 2026-05-16 - Review exposure neutralization readiness
+
+The user reported the exposure-neutralization readiness audit was handled.
+Codex reviewed the current repo state and latest commit:
+
+```text
+a951bd7 Add exposure neutralization readiness audit
+```
+
+Review scope:
+
+```text
+diagnostics/exposure_neutralization_readiness.py
+report/exposure_neutralization_readiness.json
+report/exposure_neutralization_readiness.md
+analysis/exposure_neutralization_readiness.md
+```
+
+Impact assessment:
+
+```text
+Module: diagnostics / data contract / report governance
+Source data impact: none
+Backtest metric impact: none
+Report impact: exposure-neutralization readiness outputs regenerated
+Experiment rerun needed: no GP, no model scout, no backtest rerun
+```
+
+Finding and fix:
+
+- The readiness conclusion was correct: local files do not contain market cap,
+  industry, ST flags, turnover rate, or float shares.
+- `neutralization_ready` was correctly false.
+- Codex fixed one JSON summary counter so `critical_fields_with_proxy` counts
+  only critical exposure fields. It is now `0`, not `1` from the non-critical
+  `suspended -> n_days` proxy.
+
+Current readiness state:
+
+```text
+critical_fields = circ_mv, industry, is_st, total_mv
+critical_fields_present = 0
+critical_fields_with_proxy = 0
+critical_fields_missing = 4
+missing_critical_fields = total_mv, circ_mv, industry, is_st
+neutralization_ready = false
+hard_blocker = true
+```
+
+Validation:
+
+```powershell
+python diagnostics\exposure_neutralization_readiness.py
+python -m compileall diagnostics
+python diagnostics\final_holdout_monitor_check.py
+Compare-Object report\exposure_neutralization_readiness.md analysis\exposure_neutralization_readiness.md
+```
+
+Validation result:
+
+```text
+Readiness script: OK
+compileall diagnostics: OK
+final holdout monitor: OK
+report/analysis readiness reports: synchronized
+Final holdout: preliminary pass
+Raw activity promotion: blocked
+light_model_scout: blocked
+GP: paused
+Phase 2: paused
+```
+
+## Request For Claude
+
+Do not restart GP. Do not enter Phase 2. Do not run light_model_scout.
+Do not promote raw activity factors.
+Do not overwrite existing source parquet/db files.
+
+Next task:
+
+```text
+Create an exposure-controls data contract and staging plan.
+```
+
+Purpose:
+
+```text
+Prepare the project to add true exposure controls later without polluting
+existing source data or using amount/volume as fake market-cap proxies.
+```
+
+Requirements:
+
+1. Create a new diagnostic/planning script:
+
+```text
+diagnostics/exposure_controls_data_contract.py
+```
+
+2. It should not download data by default. It should only define and validate
+   the required schemas for future local staging tables/files.
+
+3. Required future datasets and minimum fields:
+
+```text
+stock_basic:
+  ts_code, name, industry, list_date, list_status
+
+daily_basic:
+  ts_code, trade_date, total_mv, circ_mv, turnover_rate, float_share
+
+namechange_or_st:
+  ts_code, start_date, end_date, name, is_st
+
+suspend_or_trade_status:
+  ts_code, trade_date, suspended
+```
+
+4. Define intended storage under a separate result/staging path, for example:
+
+```text
+data/exposure_controls/
+```
+
+Do not modify:
+
+```text
+data/daily_ohlcv.parquet
+data/weekly_ohlcv.parquet
+data/weekly_daily_features.parquet
+```
+
+5. Output:
+
+```text
+report/exposure_controls_data_contract.json
+report/exposure_controls_data_contract.md
+analysis/exposure_controls_data_contract.md
+```
+
+6. The report must clearly state:
+
+```text
+data_contract_ready = true
+download_performed = false
+neutralization_ready = false
+```
+
+7. Include a future join policy:
+
+```text
+Signals at week t may only use exposure controls known on or before signal_date.
+No final_holdout-based candidate selection.
+```
+
+8. Keep raw activity factors blocked until a later script actually loads true
+   exposure controls and runs neutralized candidate tests.
+
+Validation:
+
+```powershell
+python diagnostics\exposure_controls_data_contract.py
+python -m compileall diagnostics
+python diagnostics\final_holdout_monitor_check.py
+```
+
+Required final state:
+
+```text
+Final holdout: preliminary pass
+Exposure neutralization: not ready
 Raw activity promotion: blocked
 light_model_scout: blocked
 GP: paused
