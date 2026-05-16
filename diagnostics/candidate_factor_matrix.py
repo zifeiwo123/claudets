@@ -147,9 +147,12 @@ def evaluate_factor(factor_df, fwd_df, pname, factor_name, top_n, family, label)
     m_abs = portfolio_metrics(pf["net_ret"])
     ew = fwp.mean(axis=1)
     ci = pf.index.intersection(ew.index)
-    excess = pf["net_ret"][ci] - ew[ci]
+    strategy = pf["net_ret"][ci]
+    benchmark = ew[ci]
+    excess = strategy - benchmark
+    m_abs = portfolio_metrics(strategy)
     m_exc = portfolio_metrics(excess)
-    m_ew = portfolio_metrics(ew)
+    m_ew = portfolio_metrics(benchmark)
     return {
         "period": pname,
         "family": family,
@@ -183,9 +186,12 @@ def evaluate_holdout_baseline(factor_df, fwd_df, factor_name, top_n, label):
     m_abs = portfolio_metrics(pf["net_ret"])
     ew = fwp.mean(axis=1)
     ci = pf.index.intersection(ew.index)
-    excess = pf["net_ret"][ci] - ew[ci]
+    strategy = pf["net_ret"][ci]
+    benchmark = ew[ci]
+    excess = strategy - benchmark
+    m_abs = portfolio_metrics(strategy)
     m_exc = portfolio_metrics(excess)
-    m_ew = portfolio_metrics(ew)
+    m_ew = portfolio_metrics(benchmark)
     return {
         "period": "final_holdout",
         "family": "frozen_baseline",
@@ -298,6 +304,36 @@ def compute_all():
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
+    # Final-holdout consistency check vs canonical metrics
+    canonical_path = os.path.join(REPORT_DIR, "final_holdout_metrics.json")
+    if os.path.exists(canonical_path):
+        with open(canonical_path, encoding="utf-8") as f:
+            canonical = json.load(f)
+        fh = df[(df["period"] == "final_holdout") & (df["label"] == "baseline")
+                & (df["factor"] == "-volume") & (df["top_n"] == 50)]
+        if len(fh) > 0:
+            row = fh.iloc[0]
+            checks = [
+                ("n_holdout_weeks", int(row["weeks"]), canonical.get("n_holdout_weeks"), 0),
+                ("annualized_ew_return", row["univ_ew_annual_return"], canonical.get("annualized_ew_return"), 0.002),
+                ("annualized_excess_return", row["excess_annual_return"], canonical.get("annualized_excess_return"), 0.001),
+                ("ir_vs_ew", row["ir_vs_ew"], canonical.get("ir_vs_ew"), 0.01),
+            ]
+            failures = []
+            for name, val, expected, tol in checks:
+                if expected is not None and abs(val - expected) > tol:
+                    failures.append(f"{name}: got {val}, expected {expected} (tol={tol})")
+            if failures:
+                print("WARNING: Final-holdout consistency check FAILED:")
+                for fmsg in failures:
+                    print(f"  {fmsg}")
+            else:
+                print("Final-holdout consistency check: OK")
+        else:
+            print("WARNING: No -volume LO50 baseline row for final_holdout")
+    else:
+        print("WARNING: canonical metrics not found, skipping consistency check")
+
     return df, summary
 
 
@@ -321,6 +357,26 @@ def generate_report(df, summary):
             f"{v['best_baseline_factor']} | {v['best_baseline_ir']:+.2f} | {sym} |"
         )
 
+    # Candidate promotion summary
+    raw_activity = ["-volume", "-amount", "volume_z", "amount_z"]
+    baseline_set = set(BASELINE_FACTORS)
+    dev_test_cands = df[(df["period"] == "dev_test") & (df["label"] == "candidate")]
+    promo_rows = []
+    for _, r in dev_test_cands.iterrows():
+        f = r["factor"]
+        cat = "baseline" if f in baseline_set else ("raw_activity" if f in raw_activity else (
+            "daily_derived" if f.startswith("d_") else "other_weekly"))
+        beats_base_ir = False
+        base_sub = df[(df["period"] == "dev_test") & (df["label"] == "baseline") & (df["top_n"] == r["top_n"])]
+        if len(base_sub) > 0:
+            beats_base_ir = r["ir_vs_ew"] > base_sub["ir_vs_ew"].max()
+        promo_rows.append({
+            "category": cat, "factor": f, "top_n": int(r["top_n"]),
+            "ir": r["ir_vs_ew"], "excess_ann": r["excess_annual_return"],
+            "excess_win": r["excess_win_rate"], "turnover": r["turnover"],
+            "beats_baseline_ir": beats_base_ir,
+        })
+
     report = f"""# candidate factor matrix
 
 **Generated**: {s['generated_at']}
@@ -329,6 +385,8 @@ def generate_report(df, summary):
 
 > Candidate factors are evaluated on train / validation / dev_test only.
 > Final holdout is reported only for the frozen baseline.
+> Train/validation rows use a frozen development universe and are diagnostic
+> only, not pure walk-forward evidence.
 > This does NOT approve Phase 2 or restart GP.
 
 ---
@@ -337,7 +395,8 @@ def generate_report(df, summary):
 
 | Parameter | Value |
 |-----------|-------|
-| Universe | U3_volclose_mid60 (400 stocks) |
+| Universe | frozen_development_universe: U3_volclose_mid60, 2023-01-01 to 2025-12-31, 400 stocks |
+| Universe note | Built once from whole dev period, not per-window; train/val rows are diagnostic |
 | Cost | turnover * 0.004 |
 | Portfolios | Long-only Top50, Top100 |
 | Dev periods | train (2023-2024), validation (2024-2025), dev_test (2025H2) |
@@ -345,14 +404,16 @@ def generate_report(df, summary):
 
 ## 2. Candidate Factor Families
 
-| Family | Factors |
-|--------|---------|
-| weekly_reversal | -ret_1w, -ret_4w, -ret_12w |
-| weekly_volatility | -vol_4w, -vol_12w |
-| weekly_activity | -volume, -amount, volume_z, amount_z |
-| daily_derived | d_ret_5d, d_ret_20d, d_vol_20d, d_downside_vol_20d, d_range_20d, d_intraday_strength_5d, d_volume_z20, d_amount_z20 |
+| Family | Factors | Exposure Note |
+|--------|---------|---------------|
+| weekly_reversal | -ret_1w, -ret_4w, -ret_12w | Price momentum/reversal |
+| weekly_volatility | -vol_4w, -vol_12w | Volatility premium |
+| weekly_activity | -volume, -amount, volume_z, amount_z | May be liquidity/attention/size proxy, not clean alpha |
+| daily_derived | d_ret_5d, d_ret_20d, d_vol_20d, d_downside_vol_20d, d_range_20d, d_intraday_strength_5d, d_volume_z20, d_amount_z20 | Pre-computed daily features |
 
 ## 3. Candidate vs Baseline (best IR per period)
+
+Baseline factors: {', '.join(BASELINE_FACTORS)}. New candidates: everything else.
 
 | Period+Portfolio | Best Candidate | Cand IR | Best Baseline | Base IR | Beats? |
 |------------------|---------------|---------|---------------|---------|--------|
@@ -364,11 +425,28 @@ def generate_report(df, summary):
 |--------|------|-------|------------|----------|---------|----------|
 {chr(10).join(holdout_rows)}
 
-## 5. Full Results
+## 5. Candidate Promotion Gate (dev_test only, no final_holdout)
+
+Candidates that beat the frozen baseline on dev_test by IR vs EW:
+
+| Category | Factor | TopN | IR vs EW | Excess Ann | Ex Win% | Turnover | Beats Baseline? |
+|----------|--------|------|----------|------------|---------|----------|-----------------|
+{chr(10).join(f"| {p['category']} | {p['factor']} | {p['top_n']} | {p['ir']:+.2f} | {p['excess_ann']*100:+.1f}% | {p['excess_win']*100:.0f}% | {p['turnover']*100:.0f}% | {'Y' if p['beats_baseline_ir'] else 'N'} |" for p in promo_rows)}
+
+**Exposure warning**: Raw activity factors (`-volume`, `-amount`, `volume_z`, `amount_z`) may proxy for liquidity, attention, or size. They require an exposure audit before being promoted beyond simple baselines.
+
+**Promotion requires** (per candidate):
+- IR vs EW > 0
+- Positive excess annual return
+- Weekly excess win rate > 50%
+- Beats frozen baseline IR on dev_test
+- No final_holdout used for selection
+
+## 6. Full Results
 
 Parquet: `report/candidate_factor_matrix.parquet` ({len(df)} rows x {len(df.columns)} cols)
 
-## 6. Status
+## 7. Status
 
 | Item | Status |
 |------|--------|

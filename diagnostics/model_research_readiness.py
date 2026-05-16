@@ -135,9 +135,12 @@ def compute_all():
                 m_abs = portfolio_metrics(pf["net_ret"])
                 ew = fwp.mean(axis=1)
                 ci = pf.index.intersection(ew.index)
-                excess = pf["net_ret"][ci] - ew[ci]
+                strategy = pf["net_ret"][ci]
+                benchmark = ew[ci]
+                excess = strategy - benchmark
+                m_abs = portfolio_metrics(strategy)
                 m_exc = portfolio_metrics(excess)
-                m_ew = portfolio_metrics(ew)
+                m_ew = portfolio_metrics(benchmark)
 
                 baseline_results.append({
                     "period": pname,
