@@ -316,13 +316,16 @@ def generate_report(df):
         "| File | Description |",
         "|------|-------------|",
         "| report/walk_forward_baseline.parquet | Full walk-forward results |",
-        "| report/walk_forward_baseline_report.md | This report |",
+        "| report/walk_forward_baseline_report.md | Generated report (report/) |",
+        "| analysis/walk_forward_baseline_report.md | Generated report (analysis/) |",
         "| diagnostics/walk_forward_baseline.py | Reproducible script |",
     ])
 
     report_path = os.path.join(REPORT_DIR, "walk_forward_baseline_report.md")
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
+    for d in [REPORT_DIR, ANALYSIS_DIR]:
+        path = os.path.join(d, "walk_forward_baseline_report.md")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
     print(f"\nReport written to {report_path}")
 
 
