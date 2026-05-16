@@ -69,6 +69,46 @@ FROZEN_BASELINE = {
 }
 
 
+def check_final_holdout_consistency(baseline_results):
+    """Ensure the frozen -volume LO50 holdout matches the canonical audit."""
+    canonical_path = os.path.join(REPORT_DIR, "final_holdout_metrics.json")
+    status = {
+        "checked": False,
+        "ok": False,
+        "path": canonical_path,
+        "failures": [],
+    }
+    if not os.path.exists(canonical_path):
+        status["failures"].append("canonical final_holdout_metrics.json not found")
+        return status
+
+    with open(canonical_path, encoding="utf-8") as f:
+        canonical = json.load(f)
+
+    rows = [
+        r for r in baseline_results
+        if r["period"] == "final_holdout" and r["factor"] == "-volume" and r["top_n"] == 50
+    ]
+    status["checked"] = True
+    if not rows:
+        status["failures"].append("missing final_holdout -volume LO50 row")
+        return status
+
+    row = rows[0]
+    checks = [
+        ("n_holdout_weeks", int(row["weeks"]), canonical.get("n_holdout_weeks"), 0),
+        ("annualized_ew_return", row["univ_ew_annual_return"], canonical.get("annualized_ew_return"), 0.002),
+        ("annualized_excess_return", row["excess_annual_return"], canonical.get("annualized_excess_return"), 0.001),
+        ("ir_vs_ew", row["ir_vs_ew"], canonical.get("ir_vs_ew"), 0.01),
+    ]
+    for name, val, expected, tol in checks:
+        if expected is None or abs(val - expected) > tol:
+            status["failures"].append(f"{name}: got {val}, expected {expected} (tol={tol})")
+
+    status["ok"] = len(status["failures"]) == 0
+    return status
+
+
 def build_u3_universe(weekly):
     t = weekly[(weekly["trade_date"] >= "2023-01-01") & (weekly["trade_date"] <= "2025-12-31")].copy()
     t["vc"] = t["volume"] * t["close"]
@@ -161,6 +201,13 @@ def compute_all():
                     "annualized_cost": float(round(pf["turnover"].mean() * COST_RATE * 52, 4)),
                 })
 
+    consistency = check_final_holdout_consistency(baseline_results)
+    if consistency["checked"] and not consistency["ok"]:
+        raise AssertionError(
+            "Final-holdout consistency check failed: "
+            + "; ".join(consistency["failures"])
+        )
+
     result = {
         "generated_at": datetime.now().isoformat(),
         "data_source": "data/weekly_daily_features.parquet",
@@ -174,6 +221,7 @@ def compute_all():
         "frozen_baseline_config": FROZEN_BASELINE,
         "universe_stock_count": len(universe),
         "baseline_results": baseline_results,
+        "final_holdout_consistency": consistency,
         "gp_status": "paused",
         "phase2_status": "paused",
         "disclaimer": "This prepares model comparison. It does NOT approve Phase 2, does NOT restart GP, and does NOT tune on final_holdout.",
@@ -250,6 +298,7 @@ def generate_report(result):
 |-----------|-------|
 | Universe | {r['frozen_baseline_config']['universe']} |
 | Universe train | {r['frozen_baseline_config']['universe_train_start']} to {r['frozen_baseline_config']['universe_train_end']} |
+| Universe disclosure | frozen_development_universe; train/validation rows are diagnostic, not pure walk-forward evidence |
 | Universe size | {r['universe_stock_count']} stocks |
 | Factors | {', '.join(r['frozen_baseline_config']['factors'])} |
 | Portfolios | {', '.join(r['frozen_baseline_config']['portfolios'])} |
@@ -269,6 +318,7 @@ def generate_report(result):
 | GP | {r['gp_status']} |
 | Phase 2 | {r['phase2_status']} |
 | Final holdout tuning | Not performed |
+| Final holdout consistency | {'OK' if r['final_holdout_consistency']['ok'] else 'CHECK NOT PASSED'} |
 
 ## 7. Generated Files
 

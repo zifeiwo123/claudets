@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 METRICS_PATH = Path("report/final_holdout_metrics.json")
+FINAL_PASS_MIN_WEEKS = 26
 
 REQUIRED_KEYS = [
     "n_holdout_weeks",
@@ -33,6 +34,9 @@ REQUIRED_KEYS = [
     "weekly_excess_win_rate",
     "average_turnover",
     "annualized_cost",
+    "final_pass_min_weeks",
+    "final_pass_eligible",
+    "final_pass_blockers",
     "ir_ok",
     "excess_ok",
     "win_rate_ok",
@@ -81,8 +85,15 @@ def check():
         errors.append(f"weekly_excess_win_rate <= 0.5 ({win_rate if win_rate is not None else 'N/A'})")
 
     # Status checks
+    weeks = m.get("n_holdout_weeks", 0)
     if m.get("conclusion") != "preliminary pass":
-        errors.append(f"conclusion is '{m.get('conclusion')}', expected 'preliminary pass'")
+        if weeks < FINAL_PASS_MIN_WEEKS:
+            errors.append(
+                f"conclusion is '{m.get('conclusion')}' with only {weeks} weeks; "
+                f"expected 'preliminary pass' until at least {FINAL_PASS_MIN_WEEKS} weeks"
+            )
+        else:
+            errors.append(f"conclusion is '{m.get('conclusion')}', expected governed review")
     if m.get("gp_status") != "paused":
         errors.append(f"gp_status is '{m.get('gp_status')}', expected 'paused'")
     if m.get("phase2_status") != "paused":
@@ -101,8 +112,18 @@ def check():
         )
 
     # Sanity: weeks should be positive
-    if m.get("n_holdout_weeks", 0) <= 0:
+    if weeks <= 0:
         errors.append(f"n_holdout_weeks={m.get('n_holdout_weeks')} is non-positive")
+    if weeks < FINAL_PASS_MIN_WEEKS and m.get("final_pass_eligible") is True:
+        errors.append(
+            f"final_pass_eligible=True with only {weeks} weeks; "
+            f"minimum is {FINAL_PASS_MIN_WEEKS}"
+        )
+    if m.get("final_pass_min_weeks") != FINAL_PASS_MIN_WEEKS:
+        errors.append(
+            f"final_pass_min_weeks={m.get('final_pass_min_weeks')}, "
+            f"expected {FINAL_PASS_MIN_WEEKS}"
+        )
 
     # Sanity: turnover in reasonable range
     to = m.get("average_turnover", 0)
@@ -121,6 +142,9 @@ def check():
     print(f"  excess ann: {m['annualized_excess_return']*100:+.3f}%")
     print(f"  excess win rate: {m['weekly_excess_win_rate']*100:.1f}%")
     print(f"  conclusion: {m['conclusion']}")
+    print(f"  final PASS eligible: {m.get('final_pass_eligible')}")
+    if m.get("final_pass_blockers"):
+        print(f"  final PASS blockers: {', '.join(m['final_pass_blockers'])}")
     print(f"  gp: {m['gp_status']}, phase2: {m['phase2_status']}")
 
 

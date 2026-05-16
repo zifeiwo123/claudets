@@ -1,6 +1,6 @@
 # model research readiness
 
-**Generated**: 2026-05-16T13:41:50.822124
+**Generated**: 2026-05-16T13:54:57.036866
 **GP**: paused
 **Phase 2**: paused
 
@@ -41,6 +41,7 @@
 |-----------|-------|
 | Universe | U3_volclose_mid60 |
 | Universe train | 2023-01-01 to 2025-12-31 |
+| Universe disclosure | frozen_development_universe; train/validation rows are diagnostic, not pure walk-forward evidence |
 | Universe size | 400 stocks |
 | Factors | -volume, -ret_4w |
 | Portfolios | long_only_top50, long_only_top100 |
@@ -75,6 +76,7 @@
 | GP | paused |
 | Phase 2 | paused |
 | Final holdout tuning | Not performed |
+| Final holdout consistency | OK |
 
 ## 7. Generated Files
 

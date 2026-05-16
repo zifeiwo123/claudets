@@ -1,6 +1,6 @@
 # final holdout: -volume on U3 LO50
 
-**Generated**: 2026-05-13T22:39:28.132239
+**Generated**: 2026-05-16T14:00:26.489114
 **Conclusion**: preliminary pass
 **GP**: paused
 **Phase 2**: paused
@@ -44,6 +44,8 @@ All numbers from single source: `report/final_holdout_weekly_detail.parquet` -> 
 | **Weekly excess win rate** | **61.5%** |
 | Average turnover | 26.0% |
 | Annualized cost | +5.410% |
+| Final PASS minimum weeks | 26 |
+| Final PASS eligible | False |
 
 ## How annualized excess is computed
 
@@ -110,6 +112,7 @@ However:
 - The signal may degrade as 2026 data accumulates.
 
 The result is a **preliminary pass**, not a final PASS. GP and Phase 2 remain paused.
+Final PASS is blocked by: holdout_weeks 13 < required 26.
 
 ## Files
 

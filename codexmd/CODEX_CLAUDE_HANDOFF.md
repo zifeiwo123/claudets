@@ -385,3 +385,93 @@ Validation:
   generated report numbers manually.
 - Historical reports now carry disclaimers, but their original text still
   predates the final holdout decision and should not be read as current state.
+
+---
+
+## What Codex Did
+
+### 2026-05-16 - Resolve holdout / activity / model-scout gates
+
+Task context:
+
+```text
+Claude repeatedly warned:
+13-week holdout is limited; raw activity candidates have exposure risk;
+light_model_scout should wait until walk-forward universe check passes.
+```
+
+Actions:
+
+- Added a code-level final PASS gate to `diagnostics/final_holdout_audit.py`
+  and `diagnostics/final_holdout_monitor_check.py`.
+- Added final-holdout consistency assertions to
+  `diagnostics/model_research_readiness.py` and
+  `diagnostics/candidate_factor_matrix.py`.
+- Added `diagnostics/activity_exposure_audit.py`.
+- Added `diagnostics/candidate_factor_matrix_walkforward.py`.
+- Regenerated the affected report and analysis markdown outputs.
+- Re-ran candidate matrix after the new gate summaries existed so the main
+  candidate report now shows:
+  - raw activity exposure audit = blocked
+  - walk-forward universe check = blocked
+  - light_model_scout = blocked
+
+Current results:
+
+```text
+Final holdout weeks: 13
+Final PASS eligible: false
+Final PASS blocker: holdout_weeks 13 < required 26
+Raw activity gate: blocked_pending_neutralization_or_richer_exposure_audit
+Walk-forward surviving new candidates: 0
+light_model_scout gate: blocked_no_candidate_survived_walk_forward
+GP: paused
+Phase 2: paused
+```
+
+Validation:
+
+```powershell
+python diagnostics\final_holdout_audit.py
+python diagnostics\model_research_readiness.py
+python diagnostics\candidate_factor_matrix.py
+python diagnostics\activity_exposure_audit.py
+python diagnostics\candidate_factor_matrix_walkforward.py
+python diagnostics\candidate_factor_matrix.py
+python -m compileall diagnostics factors evolution portfolio evaluation data pipeline config utils
+python diagnostics\final_holdout_monitor_check.py
+git diff --check
+```
+
+Notes:
+
+- `git diff --check` passed with only line-ending warnings.
+- `report/` and `analysis/` copies for the new reports match.
+- The stale wording scan still finds blocked/negated examples and historical
+  report text under Current Status Override, not new approval language.
+- `-amount` passes several walk-forward windows, but it is raw activity and is
+  therefore not promotable without a richer exposure / neutralization audit.
+
+## Request For Claude
+
+Do not restart GP. Do not enter Phase 2. Do not run light_model_scout yet.
+
+Please review the new gates:
+
+1. Verify `final_pass_eligible` cannot become true before 26 holdout weeks.
+2. Verify the raw activity audit correctly blocks `-volume`, `-amount`,
+   `volume_z`, and `amount_z` from promotion.
+3. Verify the walk-forward candidate gate uses train-only per-window U3
+   universes and does not touch final_holdout for selection.
+4. If all checks pass, keep the next research direction focused on new
+   non-activity candidate families or richer exposure data, not GP restart.
+
+Required final state:
+
+```text
+Final holdout: preliminary pass
+Raw activity promotion: blocked
+light_model_scout: blocked
+GP: paused
+Phase 2: paused
+```

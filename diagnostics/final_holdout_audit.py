@@ -51,6 +51,7 @@ FACTOR_NAME = "-volume"
 TOP_N = 50
 COST_RATE = 0.004
 MAX_STOCKS = 400
+FINAL_PASS_MIN_WEEKS = 26
 REPORT_DIR = "report"
 ANALYSIS_DIR = "analysis"
 
@@ -130,6 +131,20 @@ def compute_all():
     ew_cum = (1 + ew_ret).prod()
     excess_cum = (1 + excess_ret).prod()
 
+    active_criteria_ok = bool(
+        m_excess["sharpe"] > 0
+        and m_excess["annual_return"] > 0
+        and m_excess["win_rate"] > 0.5
+    )
+    final_pass_eligible = bool(n_weeks >= FINAL_PASS_MIN_WEEKS and active_criteria_ok)
+    final_pass_blockers = []
+    if n_weeks < FINAL_PASS_MIN_WEEKS:
+        final_pass_blockers.append(
+            f"holdout_weeks {n_weeks} < required {FINAL_PASS_MIN_WEEKS}"
+        )
+    if not active_criteria_ok:
+        final_pass_blockers.append("active performance criteria not all met")
+
     metrics = {
         "holdout_start": HOLDOUT_START,
         "universe": UNIVERSE_LABEL,
@@ -159,6 +174,9 @@ def compute_all():
         "weekly_excess_win_rate": round(float(m_excess["win_rate"]), 4),
         "average_turnover": round(float(detail["turnover"].mean()), 4),
         "annualized_cost": round(float(detail["turnover"].mean() * COST_RATE * 52), 4),
+        "final_pass_min_weeks": FINAL_PASS_MIN_WEEKS,
+        "final_pass_eligible": final_pass_eligible,
+        "final_pass_blockers": final_pass_blockers,
         "ir_ok": bool(m_excess["sharpe"] > 0),
         "excess_ok": bool(m_excess["annual_return"] > 0),
         "win_rate_ok": bool(m_excess["win_rate"] > 0.5),
@@ -244,6 +262,8 @@ All numbers from single source: `report/final_holdout_weekly_detail.parquet` -> 
 | **Weekly excess win rate** | **{m['weekly_excess_win_rate']:.1%}** |
 | Average turnover | {m['average_turnover']:.1%} |
 | Annualized cost | {fmt_pct(m['annualized_cost'])} |
+| Final PASS minimum weeks | {m['final_pass_min_weeks']} |
+| Final PASS eligible | {m['final_pass_eligible']} |
 
 ## How annualized excess is computed
 
@@ -298,6 +318,7 @@ However:
 - The signal may degrade as 2026 data accumulates.
 
 The result is a **{m['conclusion']}**, not a final PASS. GP and Phase 2 remain paused.
+Final PASS is blocked by: {", ".join(m['final_pass_blockers']) if m['final_pass_blockers'] else "none"}.
 
 ## Files
 
@@ -368,6 +389,8 @@ Every metric in the report is derived from the same weekly detail table.
 | Weekly excess win rate | {metrics['weekly_excess_win_rate']*100:.1f}% |
 | Average turnover | {metrics['average_turnover']*100:.1f}% |
 | Annualized cost | {metrics['annualized_cost']*100:+.3f}% |
+| Final PASS minimum weeks | {metrics['final_pass_min_weeks']} |
+| Final PASS eligible | {metrics['final_pass_eligible']} |
 
 ## Annualization Check
 
@@ -397,6 +420,7 @@ Returns cover the interval from signal_date to return_end_date.
 
 **{metrics['conclusion']}**. GP paused. Phase 2 paused.
 The baseline may be a candidate to beat, but it is not cleared as final.
+Final PASS blockers: {", ".join(metrics['final_pass_blockers']) if metrics['final_pass_blockers'] else "none"}.
 """
 
     for d in [REPORT_DIR, ANALYSIS_DIR]:

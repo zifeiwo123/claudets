@@ -1,6 +1,6 @@
 # final holdout audit
 
-**Generated**: 2026-05-13T22:39:28.132239
+**Generated**: 2026-05-16T14:00:26.489114
 **Conclusion**: preliminary pass
 **GP**: paused
 **Phase 2**: paused
@@ -43,6 +43,8 @@ Every metric in the report is derived from the same weekly detail table.
 | Weekly excess win rate | 61.5% |
 | Average turnover | 26.0% |
 | Annualized cost | +5.410% |
+| Final PASS minimum weeks | 26 |
+| Final PASS eligible | False |
 
 ## Annualization Check
 
@@ -72,3 +74,4 @@ Returns cover the interval from signal_date to return_end_date.
 
 **preliminary pass**. GP paused. Phase 2 paused.
 The baseline may be a candidate to beat, but it is not cleared as final.
+Final PASS blockers: holdout_weeks 13 < required 26.
