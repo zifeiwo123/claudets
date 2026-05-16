@@ -1,6 +1,6 @@
 # walk-forward baseline validation report
 
-**Date**: 2026-05-16 12:30
+**Date**: 2026-05-16 12:59
 **Status**: GP paused. Simple baseline walk-forward only.
 
 ---
@@ -135,8 +135,8 @@ Passed (all 3 criteria): 10
 
 ## 6. Consistent Performers (pass >= 3 of 5 windows)
 
-| Universe | Factor | TopN | Passes | Mean IR | Mean Excess |
-|----------|--------|------|--------|---------|-------------|
+No factor/universe/TopN combo passes at least 3 of 5 windows.
+All walk-forward evidence is partial and unstable.
 
 ## 7. Final Holdout (2026-01+)
 
@@ -147,8 +147,9 @@ It is reserved as a clean final holdout for the strategy that passes walk-forwar
 
 ### Does simple baseline pass walk-forward?
 
-YES. Simple baseline factors pass walk-forward validation.
-This is DEVELOPMENT evidence only, not Phase 2 approval.
+NO. No factor/universe/TopN combo passes at least 3 of 5 walk-forward windows.
+All evidence is partial and unstable.
+Do NOT proceed to Phase 2 or restart GP based on walk-forward results.
 
 > **Current Status Override**
 >
@@ -160,9 +161,9 @@ This is DEVELOPMENT evidence only, not Phase 2 approval.
 
 ### Next step
 
-1. Isolate the consistent combos and continue monitoring.
-2. Final holdout (2026-01+) must reach PASS criteria before Phase 2.
-3. All walk-forward evidence is development only.
+1. Do NOT proceed to Phase 2 / GP
+2. Investigate whether different signal design or data sources are needed
+3. Consider whether weekly long-only on trading-activity universes is viable
 
 ## 9. Generated Files
 

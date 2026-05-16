@@ -232,23 +232,37 @@ def generate_report(df):
         lines.append(f"- LO{n}: {len(p)}/{len(sub)} windows passed")
 
     # Consistency: which combos pass 3+ windows?
-    lines.extend([
-        "",
-        "## 6. Consistent Performers (pass >= 3 of 5 windows)",
-        "",
-        "| Universe | Factor | TopN | Passes | Mean IR | Mean Excess |",
-        "|----------|--------|------|--------|---------|-------------|",
-    ])
+    consistent = []
     for uname in ["U2_amount_mid60", "U3_volclose_mid60"]:
         for fname in FACTORS_TO_TEST:
             for n in TOP_NS:
                 sub = df[(df['universe'] == uname) & (df['factor'] == fname) & (df['top_n'] == n)]
                 p = passes[(passes['universe'] == uname) & (passes['factor'] == fname) & (passes['top_n'] == n)]
                 if len(p) >= 3:
-                    lines.append(
-                        f"| {uname} | {fname} | {n} | {len(p)}/5 | "
-                        f"{sub['ir_vs_ew'].mean():+.2f} | {sub['excess_ann'].mean():+.1%} |"
-                    )
+                    consistent.append({
+                        "universe": uname, "factor": fname, "top_n": n,
+                        "passes": len(p), "mean_ir": sub['ir_vs_ew'].mean(),
+                        "mean_excess": sub['excess_ann'].mean(),
+                    })
+
+    lines.extend([
+        "",
+        "## 6. Consistent Performers (pass >= 3 of 5 windows)",
+        "",
+    ])
+    if consistent:
+        lines.extend([
+            "| Universe | Factor | TopN | Passes | Mean IR | Mean Excess |",
+            "|----------|--------|------|--------|---------|-------------|",
+        ])
+        for c in consistent:
+            lines.append(
+                f"| {c['universe']} | {c['factor']} | {c['top_n']} | "
+                f"{c['passes']}/5 | {c['mean_ir']:+.2f} | {c['mean_excess']:+.1%} |"
+            )
+    else:
+        lines.append("No factor/universe/TopN combo passes at least 3 of 5 windows.")
+        lines.append("All walk-forward evidence is partial and unstable.")
 
     lines.extend([
         "",
@@ -263,15 +277,15 @@ def generate_report(df):
         "",
     ])
 
-    if len(passes) >= 8:
-        lines.append("YES. Simple baseline factors pass walk-forward validation.")
+    if consistent:
+        combo_names = [f"{c['factor']} on {c['universe']} LO{c['top_n']}" for c in consistent]
+        lines.append(f"PARTIAL. {len(consistent)} combo(s) pass >= 3/5 windows: {', '.join(combo_names)}.")
+        lines.append("No other combo is stable across windows.")
         lines.append("This is DEVELOPMENT evidence only, not Phase 2 approval.")
-    elif len(passes) >= 4:
-        lines.append("PARTIALLY. Some factor/universe/window combinations pass, but not consistently.")
-        lines.append("Focus on the consistent performers before expanding.")
     else:
-        lines.append("NO. Simple baselines do not pass walk-forward consistently.")
-        lines.append("Re-evaluate the research direction before committing more resources.")
+        lines.append("NO. No factor/universe/TopN combo passes at least 3 of 5 walk-forward windows.")
+        lines.append("All evidence is partial and unstable.")
+        lines.append("Do NOT proceed to Phase 2 or restart GP based on walk-forward results.")
 
     lines.extend([
         "",
@@ -286,8 +300,8 @@ def generate_report(df):
         "### Next step",
         "",
     ])
-    if len(passes) >= 4:
-        lines.append("1. Isolate the consistent combos and continue monitoring.")
+    if consistent:
+        lines.append("1. Monitor the consistent combos for stability with additional data.")
         lines.append("2. Final holdout (2026-01+) must reach PASS criteria before Phase 2.")
         lines.append("3. All walk-forward evidence is development only.")
     else:
